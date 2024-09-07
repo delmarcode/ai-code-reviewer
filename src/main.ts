@@ -186,9 +186,15 @@ async function getAIResponse(
 
     core.info("Received response from OpenAI API.");
     const res = response.choices[0].message?.content?.trim() || "[]";
-    // Remove any markdown formatting before parsing JSON
-    const jsonString = res.replace(/```json\n|\n```/g, "").trim();
-    return JSON.parse(jsonString);
+    // Remove any markdown formatting and ensure valid JSON
+    const jsonString = res.replace(/^```json\s*|\s*```$/g, "").trim();
+    try {
+      return JSON.parse(jsonString);
+    } catch (parseError) {
+      core.warning(`Failed to parse JSON: ${jsonString}`);
+      core.warning(`Parse error: ${parseError}`);
+      return [];
+    }
   } catch (error: any) {
     console.error("Error Message:", error?.message || error);
 
