@@ -191,7 +191,9 @@ async function getAIResponse(
     try {
       return JSON.parse(jsonString);
     } catch (parseError) {
+      console.error(`Failed to parse JSON: ${jsonString}`);
       core.error(`Failed to parse JSON: ${jsonString}`);
+      console.error(`Parse error: ${parseError}`);
       core.error(`Parse error: ${parseError}`);
       throw parseError;
     }
