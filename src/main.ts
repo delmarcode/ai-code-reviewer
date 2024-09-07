@@ -260,7 +260,7 @@ async function hasExistingReview(
 
 async function main() {
   try {
-    core.info("Starting AI code review process...");
+    console.log("Starting AI code review process...");
     const prDetails = await getPRDetails();
     let diff: string | null;
     const eventData = JSON.parse(
