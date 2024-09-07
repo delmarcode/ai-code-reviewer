@@ -342,4 +342,14 @@ async function main() {
   }
 }
 
-main();
+(async () => {
+  try {
+    await main();
+  } catch (error) {
+    console.error("Unhandled error in main function:", error);
+    core.setFailed(
+      `Unhandled error in main function: ${(error as Error).message}`
+    );
+    process.exit(1);
+  }
+})();
