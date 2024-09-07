@@ -191,9 +191,9 @@ async function getAIResponse(
     try {
       return JSON.parse(jsonString);
     } catch (parseError) {
-      core.warning(`Failed to parse JSON: ${jsonString}`);
-      core.warning(`Parse error: ${parseError}`);
-      return [];
+      core.error(`Failed to parse JSON: ${jsonString}`);
+      core.error(`Parse error: ${parseError}`);
+      throw parseError;
     }
   } catch (error: any) {
     console.error("Error Message:", error?.message || error);
@@ -349,6 +349,7 @@ async function main() {
 }
 
 (async () => {
+  core.info("Starting AI code review action...");
   try {
     await main();
   } catch (error) {
