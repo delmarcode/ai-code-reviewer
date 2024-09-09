@@ -185,33 +185,31 @@ function getAIResponse(prompt) {
                 throw new Error("OpenAI API returned an invalid response");
             }
             core.info("Received response from OpenAI API.");
-            const res = ((_b = (_a = response.choices[0].message) === null || _a === void 0 ? void 0 : _a.content) === null || _b === void 0 ? void 0 : _b.trim()) || "[]";
+            const res = ((_b = (_a = response.choices[0].message) === null || _a === void 0 ? void 0 : _a.content) === null || _b === void 0 ? void 0 : _b.trim()) || "{}";
             // Remove any markdown formatting and ensure valid JSON
             const jsonString = res.replace(/^```json\s*|\s*```$/g, "").trim();
             try {
                 let data = JSON.parse(jsonString);
-                if (!Array.isArray(data.comments)) {
+                if (!Array.isArray(data === null || data === void 0 ? void 0 : data.comments)) {
                     throw new Error("Invalid response from OpenAI API");
                 }
                 return data.comments;
             }
             catch (parseError) {
-                console.error(`Failed to parse JSON: ${jsonString}`);
                 core.error(`Failed to parse JSON: ${jsonString}`);
-                console.error(`Parse error: ${parseError}`);
                 core.error(`Parse error: ${parseError}`);
                 throw parseError;
             }
         }
         catch (error) {
-            console.error("Error Message:", (error === null || error === void 0 ? void 0 : error.message) || error);
+            core.error("Error Message:", (error === null || error === void 0 ? void 0 : error.message) || error);
             if (error === null || error === void 0 ? void 0 : error.response) {
-                console.error("Response Data:", error.response.data);
-                console.error("Response Status:", error.response.status);
-                console.error("Response Headers:", error.response.headers);
+                core.error("Response Data:", error.response.data);
+                core.error("Response Status:", error.response.status);
+                core.error("Response Headers:", error.response.headers);
             }
             if (error === null || error === void 0 ? void 0 : error.config) {
-                console.error("Config:", error.config);
+                core.error("Config:", error.config);
             }
             core.setFailed(`OpenAI API request failed: ${error.message}`);
             throw error;
@@ -259,7 +257,7 @@ function main() {
     var _a;
     return __awaiter(this, void 0, void 0, function* () {
         try {
-            console.log("Starting AI code review process...");
+            core.info("Starting AI code review process...");
             const prDetails = yield getPRDetails();
             let diff;
             const eventData = JSON.parse((0, fs_1.readFileSync)((_a = process.env.GITHUB_EVENT_PATH) !== null && _a !== void 0 ? _a : "", "utf8"));
@@ -312,23 +310,18 @@ function main() {
             core.info("AI code review process completed successfully.");
         }
         catch (error) {
-            console.error("Error:", error);
+            core.error("Error:", error);
             core.setFailed(`Action failed: ${error.message}`);
             process.exit(1); // This line ensures the GitHub action fails
         }
     });
 }
-(() => __awaiter(void 0, void 0, void 0, function* () {
-    core.info("Starting AI code review action...");
-    try {
-        yield main();
-    }
-    catch (error) {
-        console.error("Unhandled error in main function:", error);
-        core.setFailed(`Unhandled error in main function: ${error.message}`);
-        process.exit(1);
-    }
-}))();
+core.info("Starting AI code review action...");
+main().catch((error) => {
+    core.error("Unhandled error in main function:", error);
+    core.setFailed(`Unhandled error in main function: ${error.message}`);
+    process.exit(1);
+});
 
 
 /***/ }),
