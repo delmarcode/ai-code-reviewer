@@ -103,7 +103,7 @@ async function analyzeCode(
 function createPrompt(changedFiles: File[], prDetails: PRDetails): string {
   core.info("Creating prompt for AI...");
   const problemOutline = `Your task is to review pull requests (PR). Instructions:
-- Provide the response in following JSON format:  [{"file": <file name>,  "lineNumber":  <line_number>, "reviewComment": "<review comment>"}]
+- Provide the response in following JSON format:  {"comments": [{"file": <file name>,  "lineNumber":  <line_number>, "reviewComment": "<review comment>"}]}
 - DO NOT give positive comments or compliments.
 - DO NOT give advice on renaming variable names or writing more descriptive variables.
 - Provide comments and suggestions ONLY if there is something to improve, otherwise return an empty array.
@@ -191,7 +191,11 @@ async function getAIResponse(
     // Remove any markdown formatting and ensure valid JSON
     const jsonString = res.replace(/^```json\s*|\s*```$/g, "").trim();
     try {
-      return JSON.parse(jsonString);
+      let data = JSON.parse(jsonString);
+      if (!Array.isArray(data.comments)) {
+        throw new Error("Invalid response from OpenAI API");
+      }
+      return data.comments;
     } catch (parseError) {
       console.error(`Failed to parse JSON: ${jsonString}`);
       core.error(`Failed to parse JSON: ${jsonString}`);
