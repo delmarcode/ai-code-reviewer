@@ -11,6 +11,13 @@ permissions: write-all
 jobs:
   code_review:
     runs-on: ubuntu-latest
+
+    # Check if the PR is not from a fork and not from Dependabot
+    if: >
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.actor != 'dependabot[bot]' &&
+      github.actor != 'dependabot'
+
     steps:
       - name: Generate a token
         id: generate-token
