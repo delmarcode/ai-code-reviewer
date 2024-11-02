@@ -37,7 +37,8 @@ interface AICommentResponse {
 interface GithubComment {
   body: string;
   path: string;
-  line: number;
+  line?: number;
+  start_line?: number;
 }
 
 async function getPRDetails(): Promise<PRDetails> {
@@ -238,11 +239,43 @@ function createComments(
   return aiResponses
     .flatMap((aiResponse) => {
       const file = changedFiles.find((file) => file.to === aiResponse.file);
+      if (!file || !file.to) return [];
+
+      const lineNumber = Number(aiResponse.lineNumber);
+      let isValidLine = false;
+      let isDeletedLine = false;
+
+      // Find the line in the diff and determine its type
+      file.chunks.some((chunk) =>
+        chunk.changes.some((change) => {
+          if (change.type === "add" && change.ln === lineNumber) {
+            isValidLine = true;
+            return true;
+          }
+          if (change.type === "del" && change.ln === lineNumber) {
+            isValidLine = true;
+            isDeletedLine = true;
+            return true;
+          }
+          if (change.type === "normal" && change.ln2 === lineNumber) {
+            isValidLine = true;
+            return true;
+          }
+          return false;
+        })
+      );
+
+      if (!isValidLine) {
+        core.warning(
+          `Line ${lineNumber} in ${file.to} is not part of the diff - skipping comment`
+        );
+        return [];
+      }
 
       return {
         body: aiResponse.reviewComment,
-        path: file?.to ?? "",
-        line: Number(aiResponse.lineNumber),
+        path: file.to,
+        ...(isDeletedLine ? { start_line: lineNumber } : { line: lineNumber }),
       };
     })
     .filter((comments) => comments.path !== "");
