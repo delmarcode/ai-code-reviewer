@@ -272,13 +272,23 @@ function createComments(
         return [];
       }
 
+      if (isDeletedLine) {
+        // Skip comments on deleted lines
+        core.warning(
+          `Cannot comment on deleted line ${lineNumber} in ${file.to} - skipping comment`
+        );
+        return [];
+      }
+
+      // Include the 'side' parameter
       return {
         body: aiResponse.reviewComment,
         path: file.to,
-        ...(isDeletedLine ? { start_line: lineNumber } : { line: lineNumber }),
+        line: lineNumber,
+        side: "RIGHT", // Required when using 'line'
       };
     })
-    .filter((comments) => comments.path !== "");
+    .filter((comment) => comment.path !== "");
 }
 
 async function createReviewComment(
