@@ -224,31 +224,30 @@ function createComments(changedFiles, aiResponses) {
         if (!file || !file.to)
             return [];
         const lineNumber = Number(aiResponse.lineNumber);
-        let isValidLine = false;
-        let isDeletedLine = false;
-        file.chunks.some((chunk) => chunk.changes.some((change) => {
-            if (change.type === "add" && change.ln === lineNumber) {
-                isValidLine = true;
-                return true;
-            }
-            if (change.type === "del" && change.ln === lineNumber) {
-                isValidLine = true;
-                isDeletedLine = true;
-                return true;
-            }
-            if (change.type === "normal" && change.ln2 === lineNumber) {
-                isValidLine = true;
-                return true;
-            }
-            return false;
-        }));
-        if (!isValidLine) {
+        let position;
+        // Find the position of the line in the diff
+        file.chunks.some((chunk, chunkIndex) => {
+            let lineCount = 0;
+            return chunk.changes.some((change) => {
+                if ((change.type === "add" && change.ln === lineNumber) ||
+                    (change.type === "del" && change.ln === lineNumber) ||
+                    (change.type === "normal" && change.ln2 === lineNumber)) {
+                    position = lineCount;
+                    return true;
+                }
+                lineCount++;
+                return false;
+            });
+        });
+        if (position === undefined) {
             core.warning(`Line ${lineNumber} in ${file.to} is not part of the diff - skipping comment`);
             return [];
         }
-        return Object.assign({ body: aiResponse.reviewComment, path: file.to }, (isDeletedLine
-            ? { start_line: lineNumber, side: "LEFT" }
-            : { line: lineNumber, side: "RIGHT" }));
+        return {
+            body: aiResponse.reviewComment,
+            path: file.to,
+            position: position,
+        };
     })
         .filter((comment) => Boolean(comment.path));
 }
