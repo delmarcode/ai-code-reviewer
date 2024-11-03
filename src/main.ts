@@ -246,18 +246,25 @@ function createComments(
       let isValidLine = false;
       let isDeletedLine = false;
 
+      // Calculate the maximum line number in the file after changes
+      let maxLineNumber = 0;
+
+      // Check if the line exists in the diff
       file.chunks.some((chunk) =>
         chunk.changes.some((change) => {
           if (change.type === "add" && change.ln === lineNumber) {
+            maxLineNumber = Math.max(maxLineNumber, change.ln || 0);
             isValidLine = true;
             return true;
           }
           if (change.type === "del" && change.ln === lineNumber) {
+            maxLineNumber = Math.max(maxLineNumber, change.ln || 0);
             isValidLine = true;
             isDeletedLine = true;
             return true;
           }
           if (change.type === "normal" && change.ln2 === lineNumber) {
+            maxLineNumber = Math.max(maxLineNumber, change.ln2 || 0);
             isValidLine = true;
             return true;
           }
@@ -268,6 +275,14 @@ function createComments(
       if (!isValidLine) {
         core.warning(
           `Line ${lineNumber} in ${file.to} is not part of the diff - skipping comment`
+        );
+        return [];
+      }
+
+      // Additional validation for line numbers
+      if (lineNumber > maxLineNumber) {
+        core.warning(
+          `Line ${lineNumber} in ${file.to} is beyond the end of the file - skipping comment`
         );
         return [];
       }
