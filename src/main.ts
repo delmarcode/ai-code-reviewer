@@ -39,6 +39,7 @@ interface GithubComment {
   path: string;
   line?: number;
   start_line?: number;
+  side?: "LEFT" | "RIGHT";
 }
 
 async function getPRDetails(): Promise<PRDetails> {
@@ -245,7 +246,6 @@ function createComments(
       let isValidLine = false;
       let isDeletedLine = false;
 
-      // Find the line in the diff and determine its type
       file.chunks.some((chunk) =>
         chunk.changes.some((change) => {
           if (change.type === "add" && change.ln === lineNumber) {
@@ -272,23 +272,15 @@ function createComments(
         return [];
       }
 
-      if (isDeletedLine) {
-        // Skip comments on deleted lines
-        core.warning(
-          `Cannot comment on deleted line ${lineNumber} in ${file.to} - skipping comment`
-        );
-        return [];
-      }
-
-      // Include the 'side' parameter
       return {
         body: aiResponse.reviewComment,
         path: file.to,
-        line: lineNumber,
-        side: "RIGHT", // Required when using 'line'
+        ...(isDeletedLine
+          ? { start_line: lineNumber, side: "LEFT" as const }
+          : { line: lineNumber, side: "RIGHT" as const }),
       };
     })
-    .filter((comment) => comment.path !== "");
+    .filter((comment) => Boolean(comment.path));
 }
 
 async function createReviewComment(
