@@ -220,15 +220,37 @@ function createComments(changedFiles, aiResponses) {
     core.info("Creating GitHub comments from AI responses...");
     return aiResponses
         .flatMap((aiResponse) => {
-        var _a;
         const file = changedFiles.find((file) => file.to === aiResponse.file);
-        return {
-            body: aiResponse.reviewComment,
-            path: (_a = file === null || file === void 0 ? void 0 : file.to) !== null && _a !== void 0 ? _a : "",
-            line: Number(aiResponse.lineNumber),
-        };
+        if (!file || !file.to)
+            return [];
+        const lineNumber = Number(aiResponse.lineNumber);
+        let isValidLine = false;
+        let isDeletedLine = false;
+        file.chunks.some((chunk) => chunk.changes.some((change) => {
+            if (change.type === "add" && change.ln === lineNumber) {
+                isValidLine = true;
+                return true;
+            }
+            if (change.type === "del" && change.ln === lineNumber) {
+                isValidLine = true;
+                isDeletedLine = true;
+                return true;
+            }
+            if (change.type === "normal" && change.ln2 === lineNumber) {
+                isValidLine = true;
+                return true;
+            }
+            return false;
+        }));
+        if (!isValidLine) {
+            core.warning(`Line ${lineNumber} in ${file.to} is not part of the diff - skipping comment`);
+            return [];
+        }
+        return Object.assign({ body: aiResponse.reviewComment, path: file.to }, (isDeletedLine
+            ? { start_line: lineNumber, side: "LEFT" }
+            : { line: lineNumber, side: "RIGHT" }));
     })
-        .filter((comments) => comments.path !== "");
+        .filter((comment) => Boolean(comment.path));
 }
 function createReviewComment(owner, repo, pull_number, comments) {
     return __awaiter(this, void 0, void 0, function* () {
